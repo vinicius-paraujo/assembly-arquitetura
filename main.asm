@@ -42,9 +42,8 @@ main:
     j fim
 
 ##############################
-# Chamada da função Bubble Sort
+# Chamada da funções auxiliares
 ##############################
-
 chama_bubble_sort:
     jal bubble_sort_entry
     j fim
