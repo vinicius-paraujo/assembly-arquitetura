@@ -11,15 +11,15 @@ x_cactus: .word 30
 y_upper_cactus: .word 10
 cactus_gap: .word 8
 y_down_cactus: .word 16 # y+gap
+points_text: .asciiz "Sua pontuação: "
+points: .word 0
 colors:
 	.word 0xFF15BFE6 #Cor do ceu 
 	.word 0xFFF25405 #Cor do pássaro
 	.word 0xFFFCA103 #cor da tela de morte
 	.word 0xFF0DFF19
 .text
-
 .globl flappybird_entry
-
 flappybird_entry:
 	li $a2, 0
 	li $a1,0
@@ -87,10 +87,12 @@ flappybird_entry:
 		li $a2, 1
 		jal draw_pixel
 		
+		jal check_collision
 		jal update_cactus_pos
 		li $a3,3
 		jal draw_cactus
-
+		
+		
 		
 		dont_draw_bird:
 		
@@ -100,6 +102,15 @@ flappybird_entry:
 	
 
 exit:
+
+	# motra o pontos 
+	la $a0, points_text
+	li $v0, 4
+	syscall
+	lw $a0, points
+	li $v0, 1
+	syscall
+	#sai
 	li $a2, 2
 	li $a1, 1
 	jal clean_screen
@@ -162,33 +173,33 @@ draw_pixel:
 	
 #a1 = sleep $a2 = cor
 clean_screen:
-    addi $sp, $sp, -12   # aloca espaço na pilha $ra, $s0 (linha), $s1 (col)
-    sw $ra, 8($sp)      # Salva endereço de retorno
-    sw $s0, 4($sp)      
-    sw $s1, 0($sp)      
-    move $t6, $a2
-    move $t5, $a1
-    li $s0, 0           # Inicializa a linha (y) 
+    		addi $sp, $sp, -12   # aloca espaço na pilha $ra, $s0 (linha), $s1 (col)
+    		sw $ra, 8($sp)      # Salva endereço de retorno
+    		sw $s0, 4($sp)      
+    		sw $s1, 0($sp)      
+    		move $t6, $a2
+    		move $t5, $a1
+    		li $s0, 0           # Inicializa a linha (y) 
 clean_screen_row_loop:
-    li $s1, 0           # Inicializa coluna (x)
+   		li $s1, 0           # Inicializa coluna (x)
 clean_screen_col_loop:
-    move $a0, $s1       
-    move $a1, $s0       
-    move $a2, $t6
-    jal draw_pixel
-    move $a1,$t5
-    jal sleep
-    addi $s1, $s1, 1    # Incrementa coluna
-    blt $s1, 32, clean_screen_col_loop # se coluna < 32, ccontinua pra prox col
+    		move $a0, $s1       
+    		move $a1, $s0       
+    		move $a2, $t6
+    		jal draw_pixel
+    		move $a1,$t5
+    		jal sleep
+    		addi $s1, $s1, 1    # Incrementa coluna
+    		blt $s1, 32, clean_screen_col_loop # se coluna < 32, ccontinua pra prox col
 
-    addi $s0, $s0, 1    #incrementa
-    blt $s0, 32, clean_screen_row_loop # Se linha < 32, continua pra proxima linha
+    		addi $s0, $s0, 1    #incrementa
+    		blt $s0, 32, clean_screen_row_loop # Se linha < 32, continua pra proxima linha
 
-    lw $ra, 8($sp)      # Restaura o endereço de retorno
-    lw $s0, 4($sp)     
-    lw $s1, 0($sp)     
-    addi $sp, $sp, 12   # Desaloca espaço da pilha
-    jr $ra              # retorno
+    		lw $ra, 8($sp)      # Restaura o endereço de retorno
+    		lw $s0, 4($sp)     
+		lw $s1, 0($sp)     
+    		addi $sp, $sp, 12   # Desaloca espaço da pilha
+   		jr $ra              # retorno
   
 
 # $a0= x $a1=y1 $a2=y2 $a3=indice da cor
@@ -272,3 +283,32 @@ update_cactus_pos:
 	sw $t1, x_cactus 
 	
 	jr $ra
+	
+	
+	
+check_collision:
+	lw $t1, x_pos
+	lw $t2, y_pos
+	lw $t3, y_upper_cactus
+	lw $t4, y_down_cactus
+	lw $t5, x_cactus 
+	
+	beq $t1, $t5, check #se a torre esta no mesmo x ou pasou o pasaro
+	jr $ra
+	
+	check:
+		bgt $t2, $t3, check_collision_lower
+		#check colliion uper
+		j exit
+		
+		check_collision_lower:
+			blt $t2, $t4, no_collision
+			j exit
+		no_collision:
+			#incrementa os pontos
+			lw $t6, points 
+			addi $t6, $t6, 1
+			sw $t6, points 
+			jr $ra
+		
+		
